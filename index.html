@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wikipedia - LitePedia</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3556713788542025" crossorigin="anonymous"></script>
+
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 2rem 1rem; background-color: #ffffff; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 100%; max-width: 600px; }
+        
+        /* Settings Button */
+        #settings-btn { position: fixed; top: 10px; right: 10px; cursor: pointer; background: #eee; border: none; padding: 5px 10px; border-radius: 4px; }
+        
+        .wiki-header { text-align: center; margin-bottom: 20px; }
+        .search-container { display: flex; width: 100%; margin-bottom: 20px; }
+        .search-container input { flex: 1; border: 1px solid #a2a9b1; border-radius: 3px 0 0 3px; height: 44px; padding-left: 12px; outline: none; }
+        .search-container button { background-color: #3366cc; color: white; border: 1px solid #3366cc; border-radius: 0 3px 3px 0; width: 60px; cursor: pointer; }
+        
+        #reader-view { display: none; }
+        .error-msg { background-color: #fce4e4; color: #cc0000; padding: 10px; margin-bottom: 15px; display: none; }
+    </style>
+</head>
+<body>
+
+<button id="settings-btn" onclick="manageKey()">⚙️ API Key</button>
+
+<div class="container">
+    <div id="home-view">
+        <div class="wiki-header"><h1>Wikipedia</h1></div>
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Search Wikipedia...">
+            <button onclick="executeSearch()">🔍</button>
+        </div>
+    </div>
+
+    <div id="reader-view">
+        <button onclick="goHome()">← Back</button>
+        <h2 id="article-title"></h2>
+        <div id="error-box" class="error-msg"></div>
+        <div id="ai-summary"></div>
+        <div id="full-text" style="font-size: 14px; margin-top: 20px;"></div>
+    </div>
+</div>
+
+<script>
+    // 1. KEY MANAGEMENT
+    function manageKey() {
+        let currentKey = localStorage.getItem('openrouter_key') || "";
+        let newKey = prompt("Enter your OpenRouter API Key:", currentKey);
+        if (newKey !== null) {
+            localStorage.setItem('openrouter_key', newKey);
+        }
+    }
+
+    function getApiKey() {
+        const key = localStorage.getItem('openrouter_key');
+        if (!key) {
+            alert("Please set your OpenRouter API key first using the settings button!");
+            return null;
+        }
+        return key;
+    }
+
+    // 2. SEARCH LOGIC
+    async function executeSearch() {
+        const key = getApiKey();
+        if (!key) return;
+
+        const query = document.getElementById('search-input').value.trim();
+        if (!query) return;
+
+        document.getElementById('home-view').style.display = 'none';
+        document.getElementById('reader-view').style.display = 'block';
+        document.getElementById('ai-summary').innerText = "Summarizing...";
+
+        try {
+            // Wikipedia Fetch
+            const wikiRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(query)}&origin=*&format=json`);
+            const wikiData = await wikiRes.json();
+            const page = Object.values(wikiData.query.pages)[0];
+            const rawText = page.extract;
+
+            if (!rawText) throw new Error("Article not found.");
+
+            // OpenRouter AI Fetch
+            const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${key}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    "model": "google/gemma-2-9b-it:free",
+                    "messages": [{"role": "user", "content": "Summarize: " + rawText}]
+                })
+            });
+
+            const aiData = await aiRes.json();
+            document.getElementById('ai-summary').innerHTML = marked.parse(aiData.choices[0].message.content);
+            document.getElementById('full-text').innerText = rawText;
+
+        } catch (e) {
+            document.getElementById('error-box').style.display = 'block';
+            document.getElementById('error-box').innerText = e.message;
+        }
+    }
+
+    function goHome() {
+        document.getElementById('home-view').style.display = 'block';
+        document.getElementById('reader-view').style.display = 'none';
+    }
+</script>
+</body>
+</html>
