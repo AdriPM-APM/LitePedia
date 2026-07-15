@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <!-- Google AdSense -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3556713788542025" crossorigin="anonymous"></script>
 
     <title>LitePedia</title>
@@ -13,10 +14,12 @@
         
         .container { width: 100%; max-width: 800px; padding: 2rem; }
         
+        /* Portal View */
         #home-view { text-align: center; margin-top: 50px; }
         .wiki-header h1 { font-family: 'Playfair Display', serif; font-size: 60px; text-transform: uppercase; margin: 0; font-weight: 400; }
         .wiki-header p { font-style: italic; color: var(--text-grey); margin-bottom: 30px; }
         
+        /* Search Wrapper (Fixed: Flexbox layout for single line) */
         .search-wrapper { 
             display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; 
             gap: 15px; background: #f8f9fa; padding: 20px; border-radius: 8px;
@@ -26,6 +29,7 @@
         select { padding: 8px; border: 1px solid #a2a9b1; cursor: pointer; }
         button { background: #e8ecef; border: 1px solid #a2a9b1; padding: 10px 20px; cursor: pointer; font-weight: bold; }
 
+        /* Reader View */
         #reader-view { display: none; text-align: left; }
         .back-btn { margin-bottom: 20px; color: var(--link-blue); cursor: pointer; font-size: 14px; }
         #ai-summary { font-size: 18px; line-height: 1.6; color: #202122; white-space: pre-wrap; }
@@ -34,6 +38,7 @@
 <body>
 
 <div class="container">
+    <!-- Vista Principal -->
     <div id="home-view">
         <div class="wiki-header">
             <h1>Litepedia</h1>
@@ -69,6 +74,7 @@
         </div>
     </div>
 
+    <!-- Vista de Lectura -->
     <div id="reader-view">
         <div class="back-btn" onclick="goHome()">← Volver al inicio</div>
         <h1 id="article-title"></h1>
@@ -77,24 +83,28 @@
 </div>
 
 <script>
-    // Mapa de idiomas para asegurar que la IA entienda el destino
+    // Mapa para asegurar que la IA reciba el nombre del idioma, no solo el código
     const langNames = { "en": "English", "es": "Spanish", "ca": "Catalan", "fr": "French" };
 
-    document.getElementById("search-input").addEventListener("keypress", (e) => { if (e.key === "Enter") executeSearch(); });
+    // Permitir buscar con la tecla Enter
+    document.getElementById("search-input").addEventListener("keypress", (e) => { 
+        if (e.key === "Enter") executeSearch(); 
+    });
 
     async function executeSearch() {
         const query = document.getElementById('search-input').value.trim();
         const sourceLang = document.getElementById('source-lang-select').value;
         const outputLang = document.getElementById('output-lang-select').value;
-        const outputLangName = langNames[outputLang]; // Convertimos 'es' -> 'Spanish'
+        const outputLangName = langNames[outputLang]; // Ejemplo: "Spanish"
 
         if (!query) return;
 
         document.getElementById('home-view').style.display = 'none';
         document.getElementById('reader-view').style.display = 'block';
-        document.getElementById('ai-summary').innerText = "Consultando Wikipedia...";
+        document.getElementById('ai-summary').innerText = `Consultando Wikipedia y traduciendo a ${outputLangName}...`;
 
         try {
+            // 1. Obtener datos de Wikipedia
             const url = `https://${sourceLang}.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(query)}&origin=*&format=json`;
             const response = await fetch(url);
             const data = await response.json();
@@ -103,24 +113,26 @@
             const pages = Object.values(data.query.pages);
             const page = pages[0];
             
-            if (!page.extract) throw new Error("No hay contenido suficiente.");
+            if (!page.extract) throw new Error("No hay suficiente contenido en este artículo.");
             
             document.getElementById('article-title').innerText = page.title;
-            document.getElementById('ai-summary').innerText = `Traduciendo y resumiendo a ${outputLangName}...`;
+            document.getElementById('ai-summary').innerText = `Procesando resumen en ${outputLangName}...`;
 
+            // 2. Fetch al Proxy de IA
             const aiRes = await fetch("/api/proxy", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     "model": "google/gemma-4-26b-a4b-it:free",
+                    "temperature": 0.3, // Temperatura baja para consistencia en el idioma
                     "messages": [
                         {
                             "role": "system", 
-                            "content": "Eres un traductor y redactor de enciclopedia experto. Tu tarea es traducir y resumir el texto proporcionado. Responde siempre y exclusivamente en el idioma solicitado."
+                            "content": `Eres un experto traductor y redactor. REGLA CRÍTICA: Tu salida DEBE ser 100% en idioma ${outputLangName}. Ignora el idioma original del texto y responde exclusivamente en ${outputLangName}.`
                         },
                         {
                             "role": "user", 
-                            "content": `Traduce el siguiente texto de Wikipedia al idioma ${outputLangName} y haz un resumen profesional, estructurado y académico. No añadas introducciones.\n\nTexto:\n${page.extract.substring(0, 3000)}`
+                            "content": `Resume el siguiente texto de Wikipedia en ${outputLangName}. Genera un resumen académico, profesional, estructurado y sin saludos.\n\nTexto:\n${page.extract.substring(0, 3000)}`
                         }
                     ]
                 })
@@ -128,10 +140,11 @@
 
             const aiData = await aiRes.json();
             
-            if (aiData.choices && aiData.choices[0]) {
+            // Validación de respuesta
+            if (aiData.choices && aiData.choices[0] && aiData.choices[0].message) {
                 document.getElementById('ai-summary').innerText = aiData.choices[0].message.content;
             } else {
-                throw new Error("La IA no respondió.");
+                throw new Error("La IA no devolvió un resumen válido.");
             }
 
         } catch (e) {
