@@ -1,24 +1,31 @@
 import os
 import json
-from http.server import BaseHTTPRequestHandler
 import urllib.request
+from http.server import BaseHTTPRequestHandler
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
-            # DEBUG LOG
+            # 1. Debug: Log the environment variable existence
             api_key = os.environ.get('OPENROUTER_API_KEY')
-            print(f"DEBUG: API Key present: {api_key is not None}") # This will appear in your Vercel Logs
-            
             if not api_key:
+                print("ERROR: OPENROUTER_API_KEY is NULL. Check Vercel Settings.")
                 self.send_response(500)
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": "API Key is missing in Vercel Environment"}).encode())
+                self.wfile.write(json.dumps({"error": "Missing API Key"}).encode())
                 return
 
+            # 2. Read request body
             content_length = int(self.headers.get('Content-Length', 0))
+            if content_length == 0:
+                print("ERROR: Request body is empty.")
+                self.send_response(400)
+                self.end_headers()
+                return
+            
             body = self.rfile.read(content_length)
             
+            # 3. Call OpenRouter
             url = "https://openrouter.ai/api/v1/chat/completions"
             req = urllib.request.Request(url, data=body, method='POST')
             req.add_header('Authorization', f"Bearer {api_key}")
@@ -31,7 +38,7 @@ class handler(BaseHTTPRequestHandler):
                 self.wfile.write(response.read())
                 
         except Exception as e:
-            print(f"CRITICAL ERROR: {str(e)}")
+            print(f"CRITICAL PYTHON ERROR: {str(e)}")
             self.send_response(500)
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())
