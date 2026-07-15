@@ -88,7 +88,7 @@ const aiRes = await fetch("/api/proxy", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-        "model": "google/gemma-2-9b-it:free",
+        "model": "google/gemma-4-26b-a4b-it:free",
         "messages": [{"role": "user", "content": "Summarize: " + page.extract.substring(0, 3000)}]
     })
 });
