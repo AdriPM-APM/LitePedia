@@ -49,11 +49,11 @@
             <!-- Languages will be generated here -->
         </div>
 
-       <div class="search-wrapper">
+      <div class="search-wrapper">
     <input type="text" id="search-input" placeholder="Search...">
     
     <div>
-        <label style="font-size: 12px; display: block;">Source Wikipedia:</label>
+        <label style="font-size: 10px; display: block;">Source:</label>
         <select id="source-lang-select">
             <option value="en" selected>English</option>
             <option value="es">Español</option>
@@ -63,7 +63,7 @@
     </div>
 
     <div>
-        <label style="font-size: 12px; display: block;">Output Language:</label>
+        <label style="font-size: 10px; display: block;">Output:</label>
         <select id="output-lang-select">
             <option value="en">English</option>
             <option value="es" selected>Español</option>
@@ -71,6 +71,9 @@
             <option value="fr">Français</option>
         </select>
     </div>
+
+    <button onclick="executeSearch()">Search</button>
+</div>
 
     <button onclick="executeSearch()">Search</button>
 </div>
@@ -85,10 +88,20 @@
 <script>
     // Robust Error Handling logic
    async function executeSearch() {
-    const query = document.getElementById('search-input').value.trim();
-    // Get values from the two separate dropdowns
-    const sourceLang = document.getElementById('source-lang-select').value;
-    const outputLang = document.getElementById('output-lang-select').value;
+    // Obtenemos los elementos
+    const searchInput = document.getElementById('search-input');
+    const sourceSelect = document.getElementById('source-lang-select');
+    const outputSelect = document.getElementById('output-lang-select');
+
+    // Validación básica para evitar errores si algo falla
+    if (!searchInput || !sourceSelect || !outputSelect) {
+        console.error("Error: Elemento no encontrado en el HTML.");
+        return;
+    }
+
+    const query = searchInput.value.trim();
+    const sourceLang = sourceSelect.value;
+    const outputLang = outputSelect.value;
 
     if (!query) return;
 
@@ -97,7 +110,6 @@
     document.getElementById('ai-summary').innerText = "Analyzing...";
 
     try {
-        // Use sourceLang for the Wikipedia URL
         const url = `https://${sourceLang}.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(query)}&origin=*&format=json`;
         const response = await fetch(url);
         const data = await response.json();
@@ -109,7 +121,6 @@
         const page = pages[0];
         document.getElementById('article-title').innerText = page.title;
 
-        // Use outputLang in the AI Prompt
         const aiRes = await fetch("/api/proxy", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
