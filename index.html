@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3556713788542025" 
-            crossorigin="anonymous"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3556713788542025" crossorigin="anonymous"></script>
 
     <title>LitePedia</title>
     <style>
@@ -16,29 +15,36 @@
         .container { width: 100%; max-width: 800px; padding: 2rem; }
         
         /* Portal View */
-        #home-view { text-align: center; }
+        #home-view { text-align: center; margin-top: 50px; }
         .wiki-header h1 { font-family: 'Playfair Display', serif; font-size: 60px; text-transform: uppercase; margin: 0; font-weight: 400; }
-        .wiki-header p { font-style: italic; color: var(--text-grey); margin: 0; }
+        .wiki-header p { font-style: italic; color: var(--text-grey); margin-bottom: 30px; }
         
-        .globe-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 40px; margin: 40px 0; }
-        
-        /* Search Wrapper */
-        .search-wrapper { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 30px; }
-        .controls { display: flex; justify-content: center; gap: 10px; width: 100%; }
-        #search-input { width: 300px; padding: 8px; border: 1px solid #a2a9b1; }
-        select { padding: 8px; border: 1px solid #a2a9b1; }
-        button { background: #e8ecef; border: 1px solid #a2a9b1; padding: 8px 20px; cursor: pointer; }
+        /* Search Wrapper (Fixed alignment) */
+        .search-wrapper { 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            align-items: flex-end; 
+            gap: 15px; 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 8px;
+        }
+        .input-group { display: flex; flex-direction: column; align-items: flex-start; }
+        #search-input { width: 300px; padding: 10px; border: 1px solid #a2a9b1; }
+        select { padding: 8px; border: 1px solid #a2a9b1; cursor: pointer; }
+        button { background: #e8ecef; border: 1px solid #a2a9b1; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #dcdfe2; }
 
         /* Reader View */
         #reader-view { display: none; text-align: left; }
-        .back-btn { margin-bottom: 20px; color: var(--link-blue); cursor: pointer; }
+        .back-btn { margin-bottom: 20px; color: var(--link-blue); cursor: pointer; font-size: 14px; }
         #ai-summary { font-size: 18px; line-height: 1.6; color: #202122; white-space: pre-wrap; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Vista Principal -->
     <div id="home-view">
         <div class="wiki-header">
             <h1>Litepedia</h1>
@@ -46,41 +52,49 @@
         </div>
 
         <div class="search-wrapper">
-            <input type="text" id="search-input" placeholder="Buscar artículo...">
-            
-            <div class="controls">
-                <div>
-                    <label style="font-size: 10px; display: block;">Wikipedia (Source):</label>
-                    <select id="source-lang-select">
-                        <option value="en" selected>English</option>
-                        <option value="es">Español</option>
-                        <option value="ca">Català</option>
-                        <option value="fr">Français</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size: 10px; display: block;">Resumen (Output):</label>
-                    <select id="output-lang-select">
-                        <option value="en">English</option>
-                        <option value="es" selected>Español</option>
-                        <option value="ca">Català</option>
-                        <option value="fr">Français</option>
-                    </select>
-                </div>
+            <div class="input-group">
+                <input type="text" id="search-input" placeholder="Buscar artículo...">
             </div>
-            <button onclick="executeSearch()">Buscar</button>
+            
+            <div class="input-group">
+                <label style="font-size: 11px;">Source Wikipedia:</label>
+                <select id="source-lang-select">
+                    <option value="en" selected>English</option>
+                    <option value="es">Español</option>
+                    <option value="ca">Català</option>
+                    <option value="fr">Français</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label style="font-size: 11px;">Output Language:</label>
+                <select id="output-lang-select">
+                    <option value="en">English</option>
+                    <option value="es" selected>Español</option>
+                    <option value="ca">Català</option>
+                    <option value="fr">Français</option>
+                </select>
+            </div>
+
+            <button onclick="executeSearch()">Search</button>
         </div>
     </div>
 
-    <!-- Vista de Lectura -->
     <div id="reader-view">
         <div class="back-btn" onclick="goHome()">← Volver al inicio</div>
         <h1 id="article-title"></h1>
-        <div id="ai-summary">Analizando y resumiendo...</div>
+        <div id="ai-summary">Analizando...</div>
     </div>
 </div>
 
 <script>
+    // Permitir buscar al presionar "Enter"
+    document.getElementById("search-input").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            executeSearch();
+        }
+    });
+
     async function executeSearch() {
         const query = document.getElementById('search-input').value.trim();
         const sourceLang = document.getElementById('source-lang-select').value;
@@ -88,13 +102,11 @@
 
         if (!query) return;
 
-        // Cambiar vista
         document.getElementById('home-view').style.display = 'none';
         document.getElementById('reader-view').style.display = 'block';
-        document.getElementById('ai-summary').innerText = "Consultando Wikipedia...";
+        document.getElementById('ai-summary').innerText = "Consultando Wikipedia en " + sourceLang + "...";
 
         try {
-            // 1. Fetch de Wikipedia
             const url = `https://${sourceLang}.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(query)}&origin=*&format=json`;
             const response = await fetch(url);
             const data = await response.json();
@@ -103,12 +115,11 @@
             const pages = Object.values(data.query.pages);
             const page = pages[0];
             
-            if (!page.extract) throw new Error("No hay contenido suficiente en este artículo.");
+            if (!page.extract) throw new Error("No hay suficiente información en esta página.");
             
             document.getElementById('article-title').innerText = page.title;
-            document.getElementById('ai-summary').innerText = "Resumiendo con IA...";
+            document.getElementById('ai-summary').innerText = "Resumiendo con IA (en " + outputLang + ")...";
 
-            // 2. Fetch al Proxy de IA
             const aiRes = await fetch("/api/proxy", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -129,7 +140,6 @@
 
             const aiData = await aiRes.json();
             
-            // Validación de respuesta de IA
             if (aiData.choices && aiData.choices[0] && aiData.choices[0].message) {
                 document.getElementById('ai-summary').innerText = aiData.choices[0].message.content;
             } else {
