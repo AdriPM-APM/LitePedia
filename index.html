@@ -2,44 +2,44 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>LitePedia - AI Wikipedia</title>
+    <title>LitePedia - AI</title>
     <style>
         :root { --bg: #ffffff; --text: #202122; --border: #a2a9b1; --accent: #3366cc; }
         body.dark-mode { --bg: #121212; --text: #e0e0e0; --border: #444; --accent: #6699ff; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
 
-        /* Controles y Búsqueda */
-        .controls-wrapper { display: flex; gap: 15px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
-        .control-group { display: flex; flex-direction: column; gap: 5px; }
-        .control-group label { font-size: 10px; font-weight: bold; text-transform: uppercase; }
-        
-        .search-area { position: relative; max-width: 600px; margin: 0 auto; }
+        /* Contenedor de opciones (siempre visibles) */
+        .header-controls { display: flex; gap: 20px; justify-content: center; align-items: flex-end; flex-wrap: wrap; margin-bottom: 20px; padding: 10px; background: var(--header-bg); border-bottom: 1px solid var(--border); }
+        .control-group { display: flex; flex-direction: column; gap: 5px; min-width: 150px; }
+        .control-group label { font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        select, button { padding: 8px; cursor: pointer; }
+
+        /* Área de búsqueda */
+        .search-container { position: relative; max-width: 600px; margin: 0 auto 30px; }
         #search-input { width: 100%; padding: 12px; border: 1px solid var(--border); box-sizing: border-box; }
         
-        /* Dropdown Predictivo (Lo que la máquina piensa) */
-        #autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg); border: 1px solid var(--border); z-index: 1000; display: none; }
-        .suggestion { padding: 10px; cursor: pointer; border-bottom: 1px solid var(--border); }
-        .suggestion:hover { background: #eee; }
+        /* Resultados IA */
+        #ai-output { max-width: 800px; margin: 20px auto; padding: 20px; line-height: 1.6; border: 1px solid var(--border); border-radius: 8px; }
+        
+        /* Formato de texto IA */
+        #ai-output b { font-weight: bold; color: var(--accent); }
+        #ai-output u { text-decoration: underline; }
+        #ai-output i { font-style: italic; }
 
-        /* IA Result Styling */
-        #ai-result { max-width: 800px; margin: 40px auto; padding: 20px; border-left: 4px solid var(--accent); background: #f9f9f9; color: #333; }
-        .ai-label { font-size: 12px; color: var(--accent); font-weight: bold; margin-bottom: 10px; display: block; }
-
-        .theme-toggle { position: fixed; top: 10px; right: 10px; cursor: pointer; z-index: 2000; }
-        .ad-container { position: fixed; bottom: 20px; right: 20px; width: 300px; }
+        .theme-toggle { position: fixed; top: 10px; right: 10px; z-index: 3000; }
+        .ad-container { position: fixed; bottom: 20px; right: 20px; width: 300px; z-index: 1000; }
     </style>
 </head>
 <body>
 
-<button class="theme-toggle" onclick="toggleTheme()">🌓 Modo Oscuro/Claro</button>
+<button class="theme-toggle" onclick="toggleTheme()">🌓</button>
 
-<!-- Opciones visibles primero -->
-<div class="controls-wrapper">
+<div class="header-controls">
     <div class="control-group">
         <label>Source Wikipedia</label>
         <select id="source-lang-select">
-            <option value="en" selected>English</option>
-            <option value="es">Español</option>
+            <option value="en">English</option>
+            <option value="es" selected>Español</option>
             <option value="ca">Català</option>
         </select>
     </div>
@@ -48,23 +48,16 @@
         <select id="output-lang-select">
             <option value="en">English</option>
             <option value="es" selected>Español</option>
-            <option value="ca">Català</option>
         </select>
     </div>
-    <div class="control-group" style="justify-content: flex-end;">
-        <button onclick="executeSearch()">Search</button>
-    </div>
+    <button onclick="executeSearch()">Search</button>
 </div>
 
-<div class="search-area">
-    <input type="text" id="search-input" placeholder="Buscar artículo..." autocomplete="off">
-    <div id="autocomplete-list"></div>
+<div class="search-container">
+    <input type="text" id="search-input" placeholder="Buscar término..." autocomplete="off">
 </div>
 
-<div id="ai-result" style="display:none;">
-    <span class="ai-label">GENERADO POR IA</span>
-    <div id="ai-content"></div>
-</div>
+<div id="ai-output" style="display:none;"></div>
 
 <div class="ad-container">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3556713788542025" crossorigin="anonymous"></script>
@@ -73,74 +66,60 @@
 </div>
 
 <script>
-    const input = document.getElementById('search-input');
-    const autoList = document.getElementById('autocomplete-list');
+    // Función para convertir Markdown (IA) a HTML
+    function parseMarkdown(text) {
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // Negritas
+            .replace(/__(.*?)__/g, '<u>$1</u>')    // Subrayados
+            .replace(/\*(.*?)\*/g, '<i>$1</i>')    // Cursivas
+            .replace(/\n/g, '<br>');               // Saltos de línea
+    }
 
-    // 1. Autocompletado (Lo que la máquina piensa)
-    input.addEventListener('input', async () => {
-        const query = input.value;
-        const lang = document.getElementById('source-lang-select').value;
-        if (query.length < 2) { autoList.style.display = 'none'; return; }
-        
-        const url = `https://${lang}.wikipedia.org/w/api.php?action=query&list=prefixsearch&pssearch=${query}&format=json&origin=*`;
-        const res = await fetch(url);
-        const data = await res.json();
-        
-        autoList.innerHTML = '';
-        data.query.prefixsearch.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'suggestion';
-            div.innerText = item.title;
-            div.onclick = () => { input.value = item.title; autoList.style.display = 'none'; executeSearch(); };
-            autoList.appendChild(div);
-        });
-        autoList.style.display = 'block';
-    });
-
-    // 2. Ejecutar Búsqueda Final
     async function executeSearch() {
-        const query = input.value;
+        const query = document.getElementById('search-input').value;
         const source = document.getElementById('source-lang-select').value;
         const target = document.getElementById('output-lang-select').value;
-        const aiResult = document.getElementById('ai-result');
-        const aiContent = document.getElementById('ai-content');
+        const output = document.getElementById('ai-output');
 
-        if (!query) return;
+        if (!query) return alert("Escribe un término");
 
-        aiResult.style.display = 'block';
-        aiContent.innerText = "Consultando Wikipedia y procesando con IA...";
+        output.style.display = 'block';
+        output.innerHTML = "<i>Consultando Wikipedia...</i>";
 
         try {
+            // Wikipedia Fetch
             const wikiUrl = `https://${source}.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(query)}&origin=*&format=json`;
             const wikiRes = await fetch(wikiUrl);
             const wikiData = await wikiRes.json();
             const page = Object.values(wikiData.query.pages)[0];
 
-            if (!page.extract) throw new Error("No encontrado");
+            if (!page.extract) throw new Error("Artículo no encontrado.");
 
-            // Proxy Call
+            output.innerHTML = "<i>La IA está redactando con formato...</i>";
+
+            // AI Proxy
             const aiRes = await fetch("/api/proxy", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     "model": "google/gemma-4-26b-a4b-it:free",
                     "messages": [
-                        { "role": "system", "content": `Traduce y resume en este idioma: ${target}.` },
-                        { "role": "user", "content": page.extract.substring(0, 2000) }
+                        { "role": "system", "content": `Responde siempre en ${target}. Usa **negritas**, *cursivas* y __subrayados__ para resaltar datos importantes.` },
+                        { "role": "user", "content": `Resume esto: ${page.extract.substring(0, 2000)}` }
                     ]
                 })
             });
 
             const aiData = await aiRes.json();
-            aiContent.innerText = aiData.choices[0].message.content;
+            // Aplicamos el parseo de Markdown aquí
+            output.innerHTML = parseMarkdown(aiData.choices[0].message.content);
+            
         } catch (e) {
-            aiContent.innerText = "Error: " + e.message;
+            output.innerHTML = "Error: " + e.message;
         }
     }
 
-    function toggleTheme() {
-        document.body.classList.toggle('dark-mode');
-    }
+    function toggleTheme() { document.body.classList.toggle('dark-mode'); }
 </script>
 </body>
 </html>
