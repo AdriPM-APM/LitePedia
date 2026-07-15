@@ -25,6 +25,7 @@
         #ai-output b { font-weight: bold; color: var(--accent); }
         #ai-output u { text-decoration: underline; }
         #ai-output i { font-style: italic; }
+        #ai-output { white-space: pre-wrap; }
 
         .theme-toggle { position: fixed; top: 10px; right: 10px; z-index: 3000; }
         .ad-container { position: fixed; bottom: 20px; right: 20px; width: 300px; z-index: 1000; }
@@ -67,13 +68,21 @@
 
 <script>
     // Función para convertir Markdown (IA) a HTML
-    function parseMarkdown(text) {
-        return text
-            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // Negritas
-            .replace(/__(.*?)__/g, '<u>$1</u>')    // Subrayados
-            .replace(/\*(.*?)\*/g, '<i>$1</i>')    // Cursivas
-            .replace(/\n/g, '<br>');               // Saltos de línea
-    }
+    // Esta función convierte los símbolos de la IA en etiquetas HTML
+function parseMarkdown(text) {
+    return text
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // Convierte **texto** en <b>texto</b>
+        .replace(/__(.*?)__/g, '<u>$1</u>')    // Convierte __texto__ en <u>texto</u>
+        .replace(/\*(.*?)\*/g, '<i>$1</i>')    // Convierte *texto* en <i>texto</i>
+        .replace(/\n/g, '<br>');               // Convierte los saltos de línea
+}
+
+// Así debes usarla dentro de executeSearch()
+const aiData = await aiRes.json();
+const rawText = aiData.choices[0].message.content;
+
+// Aplicamos el formato antes de mostrarlo
+document.getElementById('ai-output').innerHTML = parseMarkdown(rawText);
 
     async function executeSearch() {
         const query = document.getElementById('search-input').value;
@@ -103,12 +112,14 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     "model": "google/gemma-4-26b-a4b-it:free",
+                    // ... dentro de tu JSON body ...
                     "messages": [
-                        { "role": "system", "content": `Responde siempre en ${target}. Usa **negritas**, *cursivas* y __subrayados__ para resaltar datos importantes.` },
-                        { "role": "user", "content": `Resume esto: ${page.extract.substring(0, 2000)}` }
-                    ]
-                })
-            });
+                        { 
+                            "role": "system", 
+                            "content": "Eres un asistente técnico. Responde en el idioma solicitado. Usa SIEMPRE este formato para resaltar: **negrita** para conceptos clave, *cursiva* para términos técnicos y __subrayado__ para advertencias de seguridad." 
+                        },
+                        { "role": "user", "content": "..." }
+                    ]    
 
             const aiData = await aiRes.json();
             // Aplicamos el parseo de Markdown aquí
