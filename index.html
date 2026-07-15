@@ -21,131 +21,126 @@
         .wiki-header p { font-style: italic; color: var(--text-grey); margin: 0; }
         
         .globe-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 40px; margin: 40px 0; }
-        .lang-link { cursor: pointer; text-decoration: none; color: var(--link-blue); }
-        .lang-link:hover { text-decoration: underline; }
-        .lang-link span { display: block; font-size: 12px; color: var(--text-grey); }
         
-        .search-wrapper { display: flex; justify-content: center; gap: 10px; margin-top: 30px; }
+        /* Search Wrapper */
+        .search-wrapper { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 30px; }
+        .controls { display: flex; justify-content: center; gap: 10px; width: 100%; }
         #search-input { width: 300px; padding: 8px; border: 1px solid #a2a9b1; }
-        #lang-select { padding: 8px; border: 1px solid #a2a9b1; }
-        button { background: #e8ecef; border: 1px solid #a2a9b1; padding: 5px 15px; cursor: pointer; }
+        select { padding: 8px; border: 1px solid #a2a9b1; }
+        button { background: #e8ecef; border: 1px solid #a2a9b1; padding: 8px 20px; cursor: pointer; }
 
         /* Reader View */
         #reader-view { display: none; text-align: left; }
         .back-btn { margin-bottom: 20px; color: var(--link-blue); cursor: pointer; }
-        #ai-summary { font-size: 18px; line-height: 1.6; color: #202122; }
+        #ai-summary { font-size: 18px; line-height: 1.6; color: #202122; white-space: pre-wrap; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <!-- Vista Principal -->
     <div id="home-view">
         <div class="wiki-header">
             <h1>Litepedia</h1>
             <p>L’enciclopèdia lliure i resumida per IA</p>
         </div>
 
-        <div class="globe-container" id="lang-grid">
-            <!-- Languages will be generated here -->
+        <div class="search-wrapper">
+            <input type="text" id="search-input" placeholder="Buscar artículo...">
+            
+            <div class="controls">
+                <div>
+                    <label style="font-size: 10px; display: block;">Wikipedia (Source):</label>
+                    <select id="source-lang-select">
+                        <option value="en" selected>English</option>
+                        <option value="es">Español</option>
+                        <option value="ca">Català</option>
+                        <option value="fr">Français</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 10px; display: block;">Resumen (Output):</label>
+                    <select id="output-lang-select">
+                        <option value="en">English</option>
+                        <option value="es" selected>Español</option>
+                        <option value="ca">Català</option>
+                        <option value="fr">Français</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="executeSearch()">Buscar</button>
         </div>
-
-      <div class="search-wrapper">
-    <input type="text" id="search-input" placeholder="Search...">
-    
-    <div>
-        <label style="font-size: 10px; display: block;">Source:</label>
-        <select id="source-lang-select">
-            <option value="en" selected>English</option>
-            <option value="es">Español</option>
-            <option value="ca">Català</option>
-            <option value="fr">Français</option>
-        </select>
     </div>
 
-    <div>
-        <label style="font-size: 10px; display: block;">Output:</label>
-        <select id="output-lang-select">
-            <option value="en">English</option>
-            <option value="es" selected>Español</option>
-            <option value="ca">Català</option>
-            <option value="fr">Français</option>
-        </select>
-    </div>
-
-    <button onclick="executeSearch()">Search</button>
-</div>
-
-    <button onclick="executeSearch()">Search</button>
-</div>
-
+    <!-- Vista de Lectura -->
     <div id="reader-view">
-        <div class="back-btn" onclick="goHome()">← Back to Portal</div>
+        <div class="back-btn" onclick="goHome()">← Volver al inicio</div>
         <h1 id="article-title"></h1>
-        <div id="ai-summary">Summarizing...</div>
+        <div id="ai-summary">Analizando y resumiendo...</div>
     </div>
 </div>
 
 <script>
-    // Robust Error Handling logic
-   async function executeSearch() {
-    // Obtenemos los elementos
-    const searchInput = document.getElementById('search-input');
-    const sourceSelect = document.getElementById('source-lang-select');
-    const outputSelect = document.getElementById('output-lang-select');
+    async function executeSearch() {
+        const query = document.getElementById('search-input').value.trim();
+        const sourceLang = document.getElementById('source-lang-select').value;
+        const outputLang = document.getElementById('output-lang-select').value;
 
-    // Validación básica para evitar errores si algo falla
-    if (!searchInput || !sourceSelect || !outputSelect) {
-        console.error("Error: Elemento no encontrado en el HTML.");
-        return;
+        if (!query) return;
+
+        // Cambiar vista
+        document.getElementById('home-view').style.display = 'none';
+        document.getElementById('reader-view').style.display = 'block';
+        document.getElementById('ai-summary').innerText = "Consultando Wikipedia...";
+
+        try {
+            // 1. Fetch de Wikipedia
+            const url = `https://${sourceLang}.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(query)}&origin=*&format=json`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (!data.query || !data.query.pages) throw new Error("No se encontró el artículo.");
+            const pages = Object.values(data.query.pages);
+            const page = pages[0];
+            
+            if (!page.extract) throw new Error("No hay contenido suficiente en este artículo.");
+            
+            document.getElementById('article-title').innerText = page.title;
+            document.getElementById('ai-summary').innerText = "Resumiendo con IA...";
+
+            // 2. Fetch al Proxy de IA
+            const aiRes = await fetch("/api/proxy", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    "model": "google/gemma-4-26b-a4b-it:free",
+                    "messages": [
+                        {
+                            "role": "system", 
+                            "content": "Actúa estrictamente como un redactor de enciclopedia profesional. Tu única función es generar el contenido del artículo. No ofrezcas opciones, no saludes, ni añadas introducciones o explicaciones. Sé objetivo, académico y utiliza Markdown limpio."
+                        },
+                        {
+                            "role": "user", 
+                            "content": `Resume el siguiente texto de Wikipedia en ${outputLang} de forma profesional, estructurada y sin relleno:\n\n${page.extract.substring(0, 3000)}`
+                        }
+                    ]
+                })
+            });
+
+            const aiData = await aiRes.json();
+            
+            // Validación de respuesta de IA
+            if (aiData.choices && aiData.choices[0] && aiData.choices[0].message) {
+                document.getElementById('ai-summary').innerText = aiData.choices[0].message.content;
+            } else {
+                throw new Error("La IA no respondió correctamente.");
+            }
+
+        } catch (e) {
+            alert("Error: " + e.message);
+            goHome();
+        }
     }
-
-    const query = searchInput.value.trim();
-    const sourceLang = sourceSelect.value;
-    const outputLang = outputSelect.value;
-
-    if (!query) return;
-
-    document.getElementById('home-view').style.display = 'none';
-    document.getElementById('reader-view').style.display = 'block';
-    document.getElementById('ai-summary').innerText = "Analyzing...";
-
-    try {
-        const url = `https://${sourceLang}.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(query)}&origin=*&format=json`;
-        const response = await fetch(url);
-        const data = await response.json();
-
-        if (!data.query || !data.query.pages) throw new Error("Article not found.");
-        const pages = Object.values(data.query.pages);
-        if (pages.length === 0 || pages[0].pageid === undefined) throw new Error("Article does not exist.");
-        
-        const page = pages[0];
-        document.getElementById('article-title').innerText = page.title;
-
-        const aiRes = await fetch("/api/proxy", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                "model": "google/gemma-4-26b-a4b-it:free",
-                "messages": [
-                    {
-                        "role": "system", 
-                        "content": "Actúa estrictamente como un redactor de enciclopedia profesional. Tu única función es generar el contenido del artículo. No ofrezcas opciones, no saludes, ni añadas introducciones o explicaciones. Sé objetivo, académico y utiliza Markdown limpio."
-                    },
-                    {
-                        "role": "user", 
-                        "content": `Resume el siguiente texto de Wikipedia en ${outputLang} de forma profesional, estructurada y sin relleno:\n\n${page.extract.substring(0, 3000)}`
-                    }
-                ]
-            })
-        });
-
-        const aiData = await aiRes.json();
-        document.getElementById('ai-summary').innerText = aiData.choices[0].message.content;
-    } catch (e) {
-        alert("Error: " + e.message);
-        goHome();
-    }
-}
 
     function goHome() {
         document.getElementById('home-view').style.display = 'block';
