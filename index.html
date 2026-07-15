@@ -89,14 +89,23 @@
             document.getElementById('article-title').innerText = page.title;
 
             // Proxy to your Python backend
-            const aiRes = await fetch("/api/proxy", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    "model": "google/gemma-4-26b-a4b-it:free",
-                    "messages": [{"role": "user", "content": `Summarize this in ${lang} professionally:\n\n${page.extract.substring(0, 3000)}`}]
-                })
-            });
+const aiRes = await fetch("/api/proxy", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        "model": "google/gemma-4-26b-a4b-it:free",
+        "messages": [
+            {
+                "role": "system", 
+                "content": "Actúa estrictamente como un redactor de enciclopedia profesional. Tu única función es generar el contenido del artículo. No ofrezcas opciones, no saludes, ni añadas introducciones o explicaciones. Sé objetivo, académico y utiliza Markdown limpio."
+            },
+            {
+                "role": "user", 
+                "content": `Resume el siguiente texto de Wikipedia en ${lang} de forma profesional, estructurada y sin relleno:\n\n${page.extract.substring(0, 3000)}`
+            }
+        ]
+    })
+});
 
             const aiData = await aiRes.json();
             document.getElementById('ai-summary').innerText = aiData.choices[0].message.content;
