@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Litepedia · AI Wikipedia</title>
-  <!-- Fuente moderna -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet" />
@@ -49,14 +48,12 @@
       align-items: center;
     }
 
-    /* --- Contenedor principal --- */
     .app {
       max-width: 820px;
       width: 100%;
       margin: 0 auto;
     }
 
-    /* --- Cabecera --- */
     .header {
       display: flex;
       justify-content: space-between;
@@ -99,7 +96,6 @@
       background: var(--border);
     }
 
-    /* --- Controles de idioma y búsqueda --- */
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -165,7 +161,6 @@
       transform: scale(0.96);
     }
 
-    /* --- Barra de búsqueda principal --- */
     .search-bar {
       position: relative;
       margin-bottom: 32px;
@@ -202,7 +197,6 @@
       font-size: 1.2rem;
     }
 
-    /* --- Área de resultados (IA) --- */
     #ai-output {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -248,42 +242,33 @@
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
 
     .error-msg {
       color: #e53e3e;
       font-weight: 500;
     }
 
-    /* --- Anuncio (estilo discreto) --- */
-    .ad-wrapper {
-      margin-top: 20px;
-      width: 100%;
-      max-width: 728px;
-      background: var(--surface);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      padding: 16px;
-      display: flex;
-      justify-content: center;
-      transition: background var(--transition), border var(--transition);
-    }
-    .ad-wrapper ins {
-      display: block;
-      width: 100%;
-      max-width: 728px;
-      height: auto;
-      min-height: 90px;
-      background: transparent;
-    }
-
-    /* --- Responsive --- */
+    /* Ajuste responsive */
     @media (max-width: 600px) {
-      .controls { flex-direction: column; align-items: stretch; }
-      .control-group { flex: 1 1 auto; }
-      .search-btn { align-self: stretch; }
-      #ai-output { padding: 20px; }
-      .logo { font-size: 1.4rem; }
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .control-group {
+        flex: 1 1 auto;
+      }
+      .search-btn {
+        align-self: stretch;
+      }
+      #ai-output {
+        padding: 20px;
+      }
+      .logo {
+        font-size: 1.4rem;
+      }
     }
   </style>
 </head>
@@ -299,7 +284,7 @@
     <button class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema">🌓</button>
   </header>
 
-  <!-- Controles -->
+  <!-- Controles de idioma -->
   <div class="controls">
     <div class="control-group">
       <label>Idioma de origen</label>
@@ -329,23 +314,12 @@
     <span class="search-icon">🔍</span>
   </div>
 
-  <!-- Resultado IA -->
+  <!-- Resultado de la IA -->
   <div id="ai-output"></div>
-
-  <!-- Anuncio -->
-  <div class="ad-wrapper">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3556713788542025" crossorigin="anonymous"></script>
-    <ins class="adsbygoogle"
-         style="display:block"
-         data-ad-client="ca-pub-3556713788542025"
-         data-ad-slot="2168826316"
-         data-ad-format="auto"></ins>
-    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-  </div>
 </div>
 
 <script>
-  // --- Utilidades ---
+  // Parseo de Markdown básico
   function parseMarkdown(text) {
     return text
       .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
@@ -372,12 +346,12 @@
     out.innerHTML = html;
   }
 
-  // --- Tema oscuro ---
+  // Alternar tema
   function toggleTheme() {
     document.body.classList.toggle('dark-mode');
   }
 
-  // --- Búsqueda principal ---
+  // Búsqueda principal
   async function executeSearch() {
     const query = document.getElementById('search-input').value.trim();
     const sourceLang = document.getElementById('source-lang-select').value;
@@ -407,7 +381,7 @@
         throw new Error('El artículo está vacío o no tiene contenido textual.');
       }
 
-      const extract = page.extract.slice(0, 4000); // límite razonable
+      const extract = page.extract.slice(0, 4000);
 
       // 2. Llamar a la IA (endpoint en Vercel)
       const aiPayload = {
@@ -443,15 +417,12 @@
       }
       const aiData = await aiRes.json();
 
-      // Según el proveedor, la respuesta puede estar en aiData.choices[0].message.content
       let raw = aiData.choices?.[0]?.message?.content;
       if (!raw) {
-        // fallback: si la respuesta tiene otra estructura
         raw = aiData.output || aiData.response || JSON.stringify(aiData);
         if (!raw || raw.length < 10) throw new Error('La IA devolvió una respuesta vacía o inválida.');
       }
 
-      // Convertir Markdown a HTML y mostrar
       const html = parseMarkdown(raw);
       showResult(html);
 
@@ -461,15 +432,16 @@
     }
   }
 
-  // --- Permitir buscar con Enter ---
+  // Buscar con Enter
   document.getElementById('search-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') executeSearch();
   });
 
-  // --- Cargar tema guardado (opcional) ---
+  // Tema oscuro por sistema
   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
     document.body.classList.add('dark-mode');
   }
 </script>
+
 </body>
 </html>
