@@ -1,136 +1,475 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>LitePedia - AI</title>
-    <style>
-        :root { --bg: #ffffff; --text: #202122; --border: #a2a9b1; --accent: #3366cc; }
-        body.dark-mode { --bg: #121212; --text: #e0e0e0; --border: #444; --accent: #6699ff; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Litepedia · AI Wikipedia</title>
+  <!-- Fuente moderna -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        /* Contenedor de opciones (siempre visibles) */
-        .header-controls { display: flex; gap: 20px; justify-content: center; align-items: flex-end; flex-wrap: wrap; margin-bottom: 20px; padding: 10px; background: var(--header-bg); border-bottom: 1px solid var(--border); }
-        .control-group { display: flex; flex-direction: column; gap: 5px; min-width: 150px; }
-        .control-group label { font-size: 11px; font-weight: bold; text-transform: uppercase; }
-        select, button { padding: 8px; cursor: pointer; }
+    :root {
+      --bg: #f8f9fc;
+      --surface: #ffffff;
+      --text: #1e1e2f;
+      --text-secondary: #4a4a5a;
+      --border: #e2e8f0;
+      --accent: #4f6ef7;
+      --accent-hover: #3b55d9;
+      --shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+      --radius: 20px;
+      --transition: 0.25s ease;
+    }
 
-        /* Área de búsqueda */
-        .search-container { position: relative; max-width: 600px; margin: 0 auto 30px; }
-        #search-input { width: 100%; padding: 12px; border: 1px solid var(--border); box-sizing: border-box; }
-        
-        /* Resultados IA */
-        #ai-output { max-width: 800px; margin: 20px auto; padding: 20px; line-height: 1.6; border: 1px solid var(--border); border-radius: 8px; }
-        
-        /* Formato de texto IA */
-        #ai-output b { font-weight: bold; color: var(--accent); }
-        #ai-output u { text-decoration: underline; }
-        #ai-output i { font-style: italic; }
-        #ai-output { white-space: pre-wrap; }
+    body.dark-mode {
+      --bg: #12121a;
+      --surface: #1e1e2a;
+      --text: #edf2f7;
+      --text-secondary: #b0b8c8;
+      --border: #2d2d3f;
+      --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    }
 
-        .theme-toggle { position: fixed; top: 10px; right: 10px; z-index: 3000; }
-        .ad-container { position: fixed; bottom: 20px; right: 20px; width: 300px; z-index: 1000; }
-    </style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 20px;
+      transition: background var(--transition), color var(--transition);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* --- Contenedor principal --- */
+    .app {
+      max-width: 820px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* --- Cabecera --- */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .logo {
+      font-weight: 600;
+      font-size: 1.7rem;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .logo span {
+      background: var(--accent);
+      color: #fff;
+      padding: 2px 10px;
+      border-radius: 40px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+      margin-left: 4px;
+    }
+
+    .theme-toggle {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      padding: 8px 16px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: background var(--transition), border var(--transition);
+      box-shadow: var(--shadow);
+    }
+    .theme-toggle:hover {
+      background: var(--border);
+    }
+
+    /* --- Controles de idioma y búsqueda --- */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+      background: var(--surface);
+      padding: 16px 20px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      margin-bottom: 28px;
+      transition: background var(--transition), border var(--transition);
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1 1 140px;
+      min-width: 120px;
+    }
+    .control-group label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+    }
+    .control-group select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: var(--text);
+      transition: border var(--transition), background var(--transition);
+      outline: none;
+      cursor: pointer;
+    }
+    .control-group select:focus {
+      border-color: var(--accent);
+    }
+
+    .search-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 12px;
+      padding: 10px 24px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #fff;
+      cursor: pointer;
+      transition: background var(--transition), transform 0.1s;
+      align-self: flex-end;
+      height: 44px;
+      white-space: nowrap;
+    }
+    .search-btn:hover {
+      background: var(--accent-hover);
+    }
+    .search-btn:active {
+      transform: scale(0.96);
+    }
+
+    /* --- Barra de búsqueda principal --- */
+    .search-bar {
+      position: relative;
+      margin-bottom: 32px;
+    }
+    .search-bar input {
+      width: 100%;
+      padding: 16px 20px;
+      padding-right: 60px;
+      border: 2px solid var(--border);
+      border-radius: 60px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 1.05rem;
+      font-family: inherit;
+      transition: border var(--transition), box-shadow var(--transition), background var(--transition);
+      box-shadow: var(--shadow);
+      outline: none;
+    }
+    .search-bar input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(79, 110, 247, 0.15);
+    }
+    .search-bar input::placeholder {
+      color: var(--text-secondary);
+      opacity: 0.7;
+    }
+    .search-bar .search-icon {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-secondary);
+      pointer-events: none;
+      font-size: 1.2rem;
+    }
+
+    /* --- Área de resultados (IA) --- */
+    #ai-output {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      box-shadow: var(--shadow);
+      line-height: 1.7;
+      font-size: 1rem;
+      transition: background var(--transition), border var(--transition), box-shadow var(--transition);
+      display: none;
+      min-height: 120px;
+      margin-bottom: 30px;
+    }
+    #ai-output.visible {
+      display: block;
+    }
+    #ai-output p {
+      margin-bottom: 1rem;
+    }
+    #ai-output b {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    #ai-output u {
+      text-decoration-color: var(--accent);
+      text-underline-offset: 3px;
+    }
+    #ai-output i {
+      opacity: 0.9;
+    }
+    #ai-output .loading {
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #ai-output .loading::after {
+      content: '';
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-msg {
+      color: #e53e3e;
+      font-weight: 500;
+    }
+
+    /* --- Anuncio (estilo discreto) --- */
+    .ad-wrapper {
+      margin-top: 20px;
+      width: 100%;
+      max-width: 728px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+      transition: background var(--transition), border var(--transition);
+    }
+    .ad-wrapper ins {
+      display: block;
+      width: 100%;
+      max-width: 728px;
+      height: auto;
+      min-height: 90px;
+      background: transparent;
+    }
+
+    /* --- Responsive --- */
+    @media (max-width: 600px) {
+      .controls { flex-direction: column; align-items: stretch; }
+      .control-group { flex: 1 1 auto; }
+      .search-btn { align-self: stretch; }
+      #ai-output { padding: 20px; }
+      .logo { font-size: 1.4rem; }
+    }
+  </style>
 </head>
 <body>
 
-<button class="theme-toggle" onclick="toggleTheme()">🌓</button>
+<div class="app">
+  <!-- Cabecera -->
+  <header class="header">
+    <div class="logo">
+      Litepedia
+      <span>AI</span>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema">🌓</button>
+  </header>
 
-<div class="header-controls">
+  <!-- Controles -->
+  <div class="controls">
     <div class="control-group">
-        <label>Source Wikipedia</label>
-        <select id="source-lang-select">
-            <option value="en">English</option>
-            <option value="es" selected>Español</option>
-            <option value="ca">Català</option>
-        </select>
+      <label>Idioma de origen</label>
+      <select id="source-lang-select">
+        <option value="en">English</option>
+        <option value="es" selected>Español</option>
+        <option value="ca">Català</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+      </select>
     </div>
     <div class="control-group">
-        <label>Output Language</label>
-        <select id="output-lang-select">
-            <option value="en">English</option>
-            <option value="es" selected>Español</option>
-        </select>
+      <label>Idioma de salida</label>
+      <select id="output-lang-select">
+        <option value="en">English</option>
+        <option value="es" selected>Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+      </select>
     </div>
-    <button onclick="executeSearch()">Search</button>
-</div>
+    <button class="search-btn" onclick="executeSearch()">Buscar</button>
+  </div>
 
-<div class="search-container">
-    <input type="text" id="search-input" placeholder="Buscar término..." autocomplete="off">
-</div>
+  <!-- Barra de búsqueda -->
+  <div class="search-bar">
+    <input type="text" id="search-input" placeholder="Escribe un tema, persona o concepto..." autocomplete="off" />
+    <span class="search-icon">🔍</span>
+  </div>
 
-<div id="ai-output" style="display:none;"></div>
+  <!-- Resultado IA -->
+  <div id="ai-output"></div>
 
-<div class="ad-container">
+  <!-- Anuncio -->
+  <div class="ad-wrapper">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3556713788542025" crossorigin="anonymous"></script>
-    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-3556713788542025" data-ad-slot="2168826316" data-ad-format="auto"></ins>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-3556713788542025"
+         data-ad-slot="2168826316"
+         data-ad-format="auto"></ins>
     <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
 </div>
 
 <script>
-    // Función para convertir Markdown (IA) a HTML
-    // Esta función convierte los símbolos de la IA en etiquetas HTML
-function parseMarkdown(text) {
+  // --- Utilidades ---
+  function parseMarkdown(text) {
     return text
-        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // Convierte **texto** en <b>texto</b>
-        .replace(/__(.*?)__/g, '<u>$1</u>')    // Convierte __texto__ en <u>texto</u>
-        .replace(/\*(.*?)\*/g, '<i>$1</i>')    // Convierte *texto* en <i>texto</i>
-        .replace(/\n/g, '<br>');               // Convierte los saltos de línea
-}
+      .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+      .replace(/__(.*?)__/g, '<u>$1</u>')
+      .replace(/\*(.*?)\*/g, '<i>$1</i>')
+      .replace(/\n/g, '<br>');
+  }
 
-// Así debes usarla dentro de executeSearch()
-const aiData = await aiRes.json();
-const rawText = aiData.choices[0].message.content;
+  function showLoading() {
+    const out = document.getElementById('ai-output');
+    out.className = 'visible';
+    out.innerHTML = `<div class="loading">La IA está procesando el resumen...</div>`;
+  }
 
-// Aplicamos el formato antes de mostrarlo
-document.getElementById('ai-output').innerHTML = parseMarkdown(rawText);
+  function showError(msg) {
+    const out = document.getElementById('ai-output');
+    out.className = 'visible';
+    out.innerHTML = `<div class="error-msg">⚠️ ${msg}</div>`;
+  }
 
-    async function executeSearch() {
-        const query = document.getElementById('search-input').value;
-        const source = document.getElementById('source-lang-select').value;
-        const target = document.getElementById('output-lang-select').value;
-        const output = document.getElementById('ai-output');
+  function showResult(html) {
+    const out = document.getElementById('ai-output');
+    out.className = 'visible';
+    out.innerHTML = html;
+  }
 
-        if (!query) return alert("Escribe un término");
+  // --- Tema oscuro ---
+  function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+  }
 
-        output.style.display = 'block';
-        output.innerHTML = "<i>Consultando Wikipedia...</i>";
+  // --- Búsqueda principal ---
+  async function executeSearch() {
+    const query = document.getElementById('search-input').value.trim();
+    const sourceLang = document.getElementById('source-lang-select').value;
+    const targetLang = document.getElementById('output-lang-select').value;
 
-        try {
-            // Wikipedia Fetch
-            const wikiUrl = `https://${source}.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(query)}&origin=*&format=json`;
-            const wikiRes = await fetch(wikiUrl);
-            const wikiData = await wikiRes.json();
-            const page = Object.values(wikiData.query.pages)[0];
-
-            if (!page.extract) throw new Error("Artículo no encontrado.");
-
-            output.innerHTML = "<i>La IA está redactando con formato...</i>";
-
-            // AI Proxy
-            const aiRes = await fetch("/api/proxy", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    "model": "google/gemma-4-26b-a4b-it:free",
-                    // ... dentro de tu JSON body ...
-                    "messages": [
-                        { 
-                            "role": "system", 
-                            "content": "Eres un asistente técnico. Responde en el idioma solicitado. Usa SIEMPRE este formato para resaltar: **negrita** para conceptos clave, *cursiva* para términos técnicos y __subrayado__ para advertencias de seguridad." 
-                        },
-                        { "role": "user", "content": "..." }
-                    ]    
-
-            const aiData = await aiRes.json();
-            // Aplicamos el parseo de Markdown aquí
-            output.innerHTML = parseMarkdown(aiData.choices[0].message.content);
-            
-        } catch (e) {
-            output.innerHTML = "Error: " + e.message;
-        }
+    if (!query) {
+      showError('Por favor, escribe un término para buscar.');
+      return;
     }
 
-    function toggleTheme() { document.body.classList.toggle('dark-mode'); }
+    showLoading();
+
+    try {
+      // 1. Obtener extracto de Wikipedia
+      const wikiUrl =
+        `https://${sourceLang}.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(query)}&origin=*&format=json`;
+      const wikiRes = await fetch(wikiUrl);
+      if (!wikiRes.ok) throw new Error('Error al conectar con Wikipedia');
+      const wikiData = await wikiRes.json();
+      const pages = wikiData.query.pages;
+      const page = Object.values(pages)[0];
+
+      if (!page || page.missing) {
+        throw new Error(`No se encontró el artículo "${query}" en Wikipedia (${sourceLang}).`);
+      }
+      if (!page.extract) {
+        throw new Error('El artículo está vacío o no tiene contenido textual.');
+      }
+
+      const extract = page.extract.slice(0, 4000); // límite razonable
+
+      // 2. Llamar a la IA (endpoint en Vercel)
+      const aiPayload = {
+        model: 'google/gemma-4-26b-a4b-it:free',
+        messages: [
+          {
+            role: 'system',
+            content: `Eres un asistente que resume artículos de Wikipedia. 
+              Responde SIEMPRE en el idioma solicitado (${targetLang}). 
+              Usa **negrita** para conceptos clave, *cursiva* para términos técnicos 
+              y __subrayado__ para advertencias o datos importantes.
+              El resumen debe ser claro, conciso y bien estructurado (máximo 3 párrafos).`
+          },
+          {
+            role: 'user',
+            content: `Artículo de Wikipedia (en ${sourceLang}):\n\n${extract}\n\n 
+              Haz un resumen en ${targetLang} siguiendo el formato indicado.`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 600
+      };
+
+      const aiRes = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(aiPayload)
+      });
+
+      if (!aiRes.ok) {
+        const errText = await aiRes.text();
+        throw new Error(`Error en el proxy de IA (${aiRes.status}): ${errText}`);
+      }
+      const aiData = await aiRes.json();
+
+      // Según el proveedor, la respuesta puede estar en aiData.choices[0].message.content
+      let raw = aiData.choices?.[0]?.message?.content;
+      if (!raw) {
+        // fallback: si la respuesta tiene otra estructura
+        raw = aiData.output || aiData.response || JSON.stringify(aiData);
+        if (!raw || raw.length < 10) throw new Error('La IA devolvió una respuesta vacía o inválida.');
+      }
+
+      // Convertir Markdown a HTML y mostrar
+      const html = parseMarkdown(raw);
+      showResult(html);
+
+    } catch (err) {
+      showError(err.message);
+      console.error(err);
+    }
+  }
+
+  // --- Permitir buscar con Enter ---
+  document.getElementById('search-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') executeSearch();
+  });
+
+  // --- Cargar tema guardado (opcional) ---
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.body.classList.add('dark-mode');
+  }
 </script>
 </body>
 </html>
